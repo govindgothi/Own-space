@@ -82,9 +82,15 @@ const getFile = async (req: Request, res: Response) => {
     const parts = range.replace(/bytes=/, "").split("-");
     console.log("parts",parts)
     const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
 
     const chunksize = end - start + 1;
+    console.log("chunksize",chunksize/(1024 * 1024))
+    const MAX_CHUNK_SIZE = 40 * 1024 * 1024; // 40MB in bytes
+    console.log("Max_chunk_size")
+    if (end - start + 1 > MAX_CHUNK_SIZE) {
+    end = start + MAX_CHUNK_SIZE - 1;
+    }
     const file = fs.createReadStream(fullPath, { start, end });
    console.log("start",start)
    console.log("end",end)
