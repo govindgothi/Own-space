@@ -28,3 +28,7 @@ fileDb.json
 ./fileDb.json
 ./storage
 storage
+# .gitignore
+*.zip
+*.mp4
+/build/
