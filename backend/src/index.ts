@@ -22,7 +22,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 import userRouter from './routes/user.route.js'
 import filesRouter from './routes/files.route.js'
-import directoriesRouter from './routes/directories.js'
+import directoriesRouter from './routes/directories.route.js'
 
 app.use('/api/v1/user',userRouter)
 app.use('/api/v1/files',filesRouter)

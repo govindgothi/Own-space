@@ -1,36 +1,25 @@
 import { Schema,model } from "mongoose";
 
 interface IUser extends Document{
-    userName:string,
+    username:string,
     password:string,
-    parentId:string | null,
-    files:string[],
-    directories:string[]
+    email:string,
+    rootDirId:string | null,
 }
 
 const userSchema = new Schema<IUser>({
-    userName:{
-        type:String,
-        trim:true
+    username:{
+        type:String
+    },
+    email:{
+        type:String
     },
     password:{
-        type:String,
-        trim:true
+        type:String
     },
-    parentId:{
-        type:String,
-        default:null
+    rootDirId:{
+        type:String
     },
-    files:[
-       {
-         type:String
-       }
-    ],
-    directories:[
-        {
-          type:String
-        }
-     ]
 })
 
 const User = model('User',userSchema)

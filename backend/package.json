@@ -8,7 +8,8 @@
     "express": "^4.21.2",
     "http": "^0.0.1-security",
     "mongoose": "^8.13.1",
-    "net": "^1.0.2"
+    "net": "^1.0.2",
+    "redis": "^4.7.0"
   },
   "name": "backend",
   "version": "1.0.0",

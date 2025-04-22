@@ -1,21 +1,84 @@
 import { User, IUser } from "../models/user.model.js";
 import { Directories } from "../models/directories.model.js";
-import { Files } from "../models/files.model.js";
+import { Files, IFiles } from "../models/files.model.js";
 import { Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
+// import dotenv from "dotenv";
+// dotenv.config({
+//     path: './.env'
+// })
+interface AuthRequest extends Request {
+  user?: any; // Define `user` as needed
+}
 
+const key = process.env.FileUploadkey
 
-const createFile = async (req: Request, res: Response) => {
-  const filename = req.headers.filename?.toString();
-  if (!filename) {
+const createFile = async(req: AuthRequest,res:Response)=>{
+  const { parentId } = req.params
+  const { resume } = req.query
+  const parentDirId = parentId.toString() || req?.user?.rootDirId
+  const parentDir = await Directories.findById({_id:parentDirId})
+  if(!parentDir){
+    return res.json({message:'dir not exist',success:false})
+  }
+  const fileName = req.headers.filename?.toString() || "untitled";
+  const extension = path.extname(fileName.toString());
+  const orgFileSize:any = req.headers.size
+  const checkFile = await Files.findOne({fileName:fileName, extension:extension})
+  
+  if(resume){
+    let dirPath = `./storage/${checkFile?._id.toString()}${checkFile?.extension}`;
+    return res.status(201).json({
+      file:"already added",
+      message:'file instance is created',
+      success:true,
+      data:{
+        dirPath,
+        fileId:checkFile?._id,
+        orgFileSize:checkFile?.orgFileSize, 
+        uploaded:checkFile?.uploaded,
+        uploadedByte:checkFile?.uploadedByte,
+        percentage:checkFile?.percentage       
+    }})
+  }
+  if (!fileName) {
     return res.status(400).json({ success: false, message: "Filename missing" });
   }
- const recievefileSize:any = req.headers.size
-  const folderPath = "./storage/govind";
-  const fullPath = path.join(folderPath, filename);
-  const writeStream = fs.createWriteStream(fullPath, { flags: "a" });
+   const addFile = await Files.create({
+    fileName,
+    extension,
+    parentId,
+    orgFileSize,
+    uploaded:false,
+    uploadedByte:0,
+    percentage:0
+ })
+    
+   if(!addFile._id){
+    return res.json({message:'not created file',success:false})
+  }
+  const dirPath = `./storage/${addFile._id.toString()}${extension}`;
+  
+  
+  return res.status(201).json({
+    message:'file instance is created',
+    success:true,
+    data:{
+      dirPath,
+      fileId:addFile._id,
+      orgFileSize,        
+  }})
 
+}
+
+const addFileData = async(req:AuthRequest,res:Response)=>{
+  // const {filesize,dirPath,orgFileSize,fileId} = req.body
+  const {filesize,fileId} = req.headers
+  const orgFileSize = Number(req.headers.orgFileSize);
+  const dirPath = req.headers.dirPath?.toString()
+  if(!dirPath) return res.json({message:'dir is not found'})
+  const writeStream = fs.createWriteStream(dirPath, { flags: "a" });
   req.on("data", (chunk) => {
     const canWrite = writeStream.write(chunk);
     if (!canWrite) {
@@ -24,18 +87,19 @@ const createFile = async (req: Request, res: Response) => {
     }
   });
 
-  req.on("end", () => {
+
+    req.on("end", () => {
     writeStream.end(); // Ensures stream is closed
     writeStream.on("finish", () => {
-      fs.stat(fullPath, (err, stats) => {
+      fs.stat(dirPath, (err, stats) => {
         if (err) {
           console.error("Error getting file stats:", err);
           return res.status(500).json({ success: false, message: "Error getting file info" });
         }
- 
+
         const fileSizeInBytes = stats.size;
         const fileSizeInMB = (fileSizeInBytes / (1024 * 1024)).toFixed(2);
-        const percentage = (fileSizeInBytes/recievefileSize)*100
+        const percentage = (fileSizeInBytes/orgFileSize)*100
         return res.status(202).json({
           success: true,
           message: "File uploaded",
@@ -49,11 +113,85 @@ const createFile = async (req: Request, res: Response) => {
     });
   });
 
-  req.on("error", (err) => {
+    req.on("error", (err) => {
     console.error("Request stream error:", err);
     return res.status(500).json({ success: false, message: "Upload failed" });
   });
-};
+
+}
+
+// const createFile = async (req:AuthRequest, res: Response) => {
+//    req.user = ''
+//   const { parentId } = req.params
+//   const parentDirId = parentId || req?.user?.rootDirId
+//   const parentDir = await Directories.findById({_id:parentDirId})
+//   if(!parentDir){
+//     return res.json({message:'dir not exist',success:false})
+//   }
+//   const fileName = req.headers.filename?.toString() || "untitled";
+//   const extension = path.extname(fileName.toString());
+//   const orgFileSize:any = req.headers.size
+//   if (!fileName) {
+//     return res.status(400).json({ success: false, message: "Filename missing" });
+//   }
+
+//  const addFile = await Files.create({
+//     fileName,
+//     extension,
+//     parentId,
+//     orgFileSize,
+//  })
+
+//   if(!addFile._id){
+//     return res.json({message:'not created file',success:false})
+//   }
+  
+//   const dirPath = `./storage/${addFile._id.toString()}${extension}`;
+//   // const fullPath = path.join(folderPath, filename);
+//   const writeStream = fs.createWriteStream(dirPath, { flags: "a" });
+//   req.on("data", (chunk) => {
+//     const canWrite = writeStream.write(chunk);
+//     if (!canWrite) {
+//       req.pause();
+//       writeStream.once("drain", () => req.resume());
+//     }
+//   });
+
+//   req.on("end", () => {
+//     writeStream.end(); // Ensures stream is closed
+//     writeStream.on("finish", () => {
+//       fs.stat(dirPath, (err, stats) => {
+//         if (err) {
+//           console.error("Error getting file stats:", err);
+//           return res.status(500).json({ success: false, message: "Error getting file info" });
+//         }
+ 
+//         const fileSizeInBytes = stats.size;
+//         const fileSizeInMB = (fileSizeInBytes / (1024 * 1024)).toFixed(2);
+//         const percentage = (fileSizeInBytes/orgFileSize)*100
+//         return res.status(202).json({
+//           success: true,
+//           message: "File uploaded",
+//           fileSize: {
+//             fileSizeInBytes,
+//             fileSizeInMB,
+//             percentage
+//           },
+//         });
+//       });
+//     });
+//   });
+
+//   req.on("error", (err) => {
+//     console.error("Request stream error:", err);
+//     return res.status(500).json({ success: false, message: "Upload failed" });
+//   });
+// };
+
+const uploadFile = async(req:Request,res:Response)=>{
+
+}
+
 const showFiles = async (req: Request, res: Response) => {
  const id = req.params
  if(!id){
@@ -112,4 +250,4 @@ const getFile = async (req: Request, res: Response) => {
   }
 };
 
-export { createFile, showFiles, deleteFiles, getFile };
+export { createFile,addFileData, showFiles, deleteFiles, getFile };

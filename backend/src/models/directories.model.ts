@@ -3,8 +3,7 @@ import { Schema,model } from "mongoose";
 interface IDirectory extends Document{
     dirName:string,
     parentDirId:string,
-    files:string[],
-    directories:string[],
+    userId:string
 }
 
 
@@ -15,18 +14,12 @@ const dirSchema = new Schema<IDirectory>({
    },
    parentDirId:{
     type:String,
-    required:true,
+    // required:true,
    },
-   files:[
-    {
-        type:String,
-    }
-   ],
-   directories:[
-    {
-        type:String, 
-    }
-   ]
+   userId:{
+    type:String,
+   }
+  
 })
 
 const Directories = model('Directories',dirSchema)
