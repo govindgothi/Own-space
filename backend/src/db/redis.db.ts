@@ -1,14 +1,28 @@
 import { createClient } from 'redis';
 
-const redisClient = createClient({
-  url: 'redis://localhost:6379', // or your Redis URL
+const client = createClient({
+  url: 'redis://127.0.0.1:6379',
 });
 
-redisClient.on('error', (err) => console.error('❌ Redis Client Error', err));
+client.on('connect', () => {
+  console.log('Connected to Redis...');
+});
 
-(async () => {
-  await redisClient.connect();
-  console.log('✅ Redis Connected');
-})();
+client.on('error', (err) => {
+  console.log('Redis error: ' + err);
+});
 
-export default redisClient;
+async function run() {
+  await client.connect();  // Connect the client
+
+  // Set a value
+  await client.set('mykey', 'Hello, Redis!');
+
+  // Get a value
+  const value = await client.get('mykey');
+  console.log(value); // Should output "Hello, Redis!"
+
+  await client.quit(); // Close the connection gracefully
+}
+
+export default client

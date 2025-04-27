@@ -1,10 +1,14 @@
 import { Router } from "express"; // ✅ Correct import
-import { createDir, deleteDir, showDir } from "../controllers/directories.controller.js";
+import {
+  createDir,
+  deleteDir,
+  showDir,
+} from "../controllers/DirectoriesApi/directories.controller.js";
 
 const router = Router();
 
-router.route("/create").post(createDir);
+router.route("/:parentId(*)").post(createDir);
 router.route("/delete").post(deleteDir);
-router.route("/show").post(showDir);
+router.route("/show").get(showDir);
 
 export default router;

@@ -1,9 +1,10 @@
-import { Schema,model } from "mongoose";
+import mongoose, { Schema,model } from "mongoose";
 
-interface IDirectory extends Document{
+interface IDirectory {
     dirName:string,
-    parentDirId:string,
-    userId:string
+    parentDirId:Schema.Types.ObjectId,
+    userId:Schema.Types.ObjectId,
+    rootId:Schema.Types.ObjectId,
 }
 
 
@@ -13,12 +14,17 @@ const dirSchema = new Schema<IDirectory>({
     required:true,
    },
    parentDirId:{
-    type:String,
-    // required:true,
+    type: Schema.Types.ObjectId, 
+    ref: 'Directories' 
    },
    userId:{
-    type:String,
-   }
+    type:Schema.Types.ObjectId,
+    ref: 'User'
+   },
+   rootId: {
+     type: Schema.Types.ObjectId, 
+     ref: 'Directories' 
+    },
   
 })
 

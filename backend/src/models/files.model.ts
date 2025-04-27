@@ -1,9 +1,10 @@
-import { Schema,model } from "mongoose";
+import { ObjectId, Schema,model } from "mongoose";
 
-interface IFiles extends Document{
+interface IFiles {
+    userId:ObjectId
     fileName:string,
     extension:string,
-    parentId:string,
+    parentId:ObjectId,
     orgFileSize:number,
     uploaded:boolean,
     uploadedByte:number,
@@ -12,6 +13,10 @@ interface IFiles extends Document{
 
 
 const filesSchema = new Schema<IFiles>({
+  userId:{
+    type: Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
   extension:{
     type:String
   },
@@ -19,7 +24,8 @@ const filesSchema = new Schema<IFiles>({
     type:String,
   },
   parentId:{
-    type:String,
+    type: Schema.Types.ObjectId, 
+    ref: 'Directories' 
   },
   orgFileSize:{
     type:Number

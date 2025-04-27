@@ -24,8 +24,9 @@ dist-ssr
 *.sw?
 .env
 node_modules
-fileDb.json
-./fileDb.json
+fileDb.js
+src/utils/fileDb.js
+.src/utils/fileDb.ts
 ./storage
 storage
 # .gitignore
