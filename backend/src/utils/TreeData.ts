@@ -10,7 +10,6 @@ export interface Directorys {
     rootId?: ObjectId;
     __v?: number;
     children?: Directorys[];
-    files?: File[];
   }
 //   export interface Files {
 //     _id: ObjectId ;
@@ -25,35 +24,45 @@ export interface Directorys {
   
 
 
-export const TreeData = (data:IDirectory[],fileData:IFiles[]) => {
-    const idMap: { [key: string]: Directorys } = {};
-    const tree: Directorys[] = [];
-  
-    
-    data.forEach((item:any) => {
-      idMap[item._id.toString()] = { ...item, children: [], files: [] };
-    });
-    data.forEach((item:any) => {
-      if (item.parentDirId) {
-        const parent = idMap[item?.parentDirId.toString()];
-        if (parent) {
-          parent.children!.push(idMap[item._id.toString()]);
-        }
-      } else {
-        tree.push(idMap[item?._id.toString()]);
+export const TreeData = (data: IDirectory[], fileData: IFiles[]) => {
+  const idMap: { [key: string]: Directorys } = {};
+  const tree: Directorys[] = [];
+
+  // Map directories first
+  data.forEach((item: any) => {
+    idMap[item._id.toString()] = { 
+      ...item, 
+      isFolder: true,  // Always true for directories
+      children: [] 
+    };
+  });
+
+  // Build directory tree
+  data.forEach((item: any) => {
+    if (item.parentDirId) {
+      const parent = idMap[item.parentDirId.toString()];
+      if (parent) {
+        parent.children!.push(idMap[item._id.toString()]);
       }
-    });
+    } else {
+      tree.push(idMap[item._id.toString()]);
+    }
+  });
 
-    fileData.forEach((file:any) => {
-        const parent = idMap[file.parentId.toString()];
-        if (parent) {
-          parent?.files!.push(file);
-        }
+  // Add files under their parent directories
+  fileData.forEach((file: any) => {
+    const parent = idMap[file.parentId.toString()];
+    if (parent) {
+      parent.children!.push({
+        ...file,
+        isFolder: false,  // Always false for files
       });
+    }
+  });
 
-      console.log("lasttree",tree)
-  
-    return tree;
-  };
-  
-  export default TreeData
+  console.log("last tree", tree);
+
+  return tree;
+};
+
+export default TreeData;
