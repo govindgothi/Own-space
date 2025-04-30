@@ -1,18 +1,74 @@
-// import React from 'react'
+import React from "react";
+import {
+  LogIn,
+  UploadCloud,
+  Trash2,
+  FolderPlus,
+  Sun,
+  Moon,
+} from "lucide-react";
+import { SiGoogleadsense } from "react-icons/si";
 
-const Header = () => {
-  return (
-    <header className="w-screen h-[50px] bg-gray-100 flex justify-around items-center">
-      <h2 className="text-2xl ">Storage</h2>
-      <div className="flex justify-around items-center w-[60%]">
-      <h4>blogs</h4>
-      <h4>directories</h4>
-      <h4>resume</h4>
-      <h4>bin</h4>
-      <h4>login</h4>
-      </div>
-    </header>
-  )
+interface HeaderProps {
+  isLoggedIn: boolean;
+  onLogin: () => void;
+  onUpload: () => void;
+  onOpenBin: () => void;
+  onCreateFolder: () => void;
+  darkMode?: boolean;
+  toggleTheme?: () => void;
 }
 
-export default Header
+const Header: React.FC<HeaderProps> = ({
+  isLoggedIn,
+  onLogin,
+  onUpload,
+  onOpenBin,
+  onCreateFolder,
+  darkMode = false,
+  toggleTheme,
+}) => {
+  return (
+    <header
+      className={`flex items-center justify-between px-4 py-3 shadow-md ${
+        darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
+      }`}
+    >
+      {/* Logo and Name */}
+      <div className="flex items-center space-x-5">
+        {/* <img src="/logo.png" alt="Logo" className="w-8 h-8" /> */}
+        <SiGoogleadsense  className="text-3xl"/>
+        <span className="text-xl font-semibold">MyStorage</span>
+      </div>
+
+      {/* Icons */}
+      <div className="flex items-center space-x-4">
+        {toggleTheme && (
+          <button onClick={toggleTheme} title="Toggle Theme">
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        )}
+
+        {!isLoggedIn ? (
+          <button onClick={onLogin} title="Login">
+            <LogIn size={20} />
+          </button>
+        ) : (
+          <>
+            <button onClick={onUpload} title="Upload">
+              <UploadCloud size={20} />
+            </button>
+            <button onClick={onCreateFolder} title="New Folder">
+              <FolderPlus size={20} />
+            </button>
+            <button onClick={onOpenBin} title="Recycle Bin">
+              <Trash2 size={20} />
+            </button>
+          </>
+        )}
+      </div>
+    </header>
+  );
+};
+
+export default Header;

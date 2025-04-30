@@ -1,12 +1,15 @@
 // import React, { useRef } from 'react'
-import { uploadFile } from '../../hooks/Uploadfile'
+// import { uploadFile } from '../../hooks/Uploadfile'
 // import { useState } from "react"
 
 
 import React, { useState } from "react";
+import { useFileUploader } from "../../hooks/useFileUploader";
 
 const FileUploader: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
+  const [progress,setProgress] = useState<number>(0)
+  const {uploadFile} = useFileUploader(setProgress)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -45,7 +48,12 @@ const FileUploader: React.FC = () => {
       </div>
       
 
-      <div className='w-[60%] mx-auto h-5 bg-green-400 border rounded-2xl'></div>
+      <div className="w-[60%] mx-auto bg-gray-200 rounded-full h-4 overflow-hidden shadow-sm">
+      <div
+        className="bg-green-500 h-full transition-all duration-300 ease-in-out"
+        style={{ width: `${progress}%` }}
+      ></div>
+    </div>
     </div>
   );
 };

@@ -1,0 +1,67 @@
+[
+    {
+        "_id": 1,
+        "name": "public",
+        "isFolder": true,
+        "children": [
+            {
+                "_id": 2,
+                "name": "image.png",
+                "isFolder": false
+            }
+        ]
+    },
+    {
+        "_id": 3,
+        "name": "component",
+        "isFolder": true,
+        "children": [
+            {
+                "_id": 4,
+                "name": "Header",
+                "isFolder": true,
+                "children": [
+                    {
+                        "_id": 5,
+                        "name": "Menu",
+                        "isFolder": true,
+                        "children": [
+                            {
+                                "_id": 6,
+                                "name": "menu.tsx",
+                                "isFolder": false
+                            },
+                            {
+                                "_id": 7,
+                                "name": "image.png",
+                                "isFolder": false
+                            }
+                        ]
+                    },
+                    {
+                        "_id": 8,
+                        "name": "Hooks",
+                        "isFolder": true,
+                        "children": [
+                            {
+                                "_id": 9,
+                                "name": "index.ts",
+                                "isFolder": false
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "_id": 10,
+        "name": "App.js",
+        "isFolder": false
+    },
+    {
+        "_id": 11,
+        "name": "Index.css",
+        "isFolder": false
+    }
+]
