@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
 import { FaFolder, FaFolderOpen } from 'react-icons/fa';
-import AddDeletePopup from '../AddDeletePopup/AddDeletePopup';
 
-interface FolderMenuProps {
-  data: any[];
-  setRowData:React.Dispatch<React.SetStateAction<any>>;
-  clickPosition:any;
-  setClickPosition:React.Dispatch<React.SetStateAction<any>>;
+interface IDirectory {
+  _id: string;
+  dirName: string;
+  isFolder: boolean;
+  parentDirId: string | null;
+  rootId: string;
+  userId: string;
+  children?: IDirectory[];
+  __v?: number;
 }
 
-const FolderMenu: React.FC<FolderMenuProps> = ({ data ,setRowData,clickPosition,setClickPosition}) => {
+interface Props {
+  data: IDirectory;
+  level?: number;
+}
+
+const FolderMenuComponent: React.FC<Props> = ({ data, level = 0 }) => {
   const [isExpandable, setIsExpandable] = useState<{ [key: string]: boolean }>({});
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folder: any } | null>(null);
 
   const handleExpandlable = (e: React.MouseEvent, dirName: string) => {
     e.stopPropagation();
@@ -19,78 +26,45 @@ const FolderMenu: React.FC<FolderMenuProps> = ({ data ,setRowData,clickPosition,
       ...prev,
       [dirName]: !prev[dirName],
     }));
-    setClickPosition(null);
   };
+  console.log("folder")
 
-  const handleRightClick = (e: React.MouseEvent, folder: any) => {
+  const handleRightClick = (e: React.MouseEvent, folder: IDirectory) => {
     e.preventDefault();
-    e.stopPropagation();
-    setClickPosition({ x: e.pageX, y: e.pageY, folder });
+    e.stopPropagation(); // Add popup logic here
   };
 
-  const handleAddFolder = () => {
-    if (contextMenu) {
-      const folderName = prompt(`Enter new folder name inside "${contextMenu.folder.dirName}"`);
-      if (folderName) {
-        console.log(`Create new subfolder: ${folderName}`);
-      }
-      setClickPosition(null);
-    }
-  };
-
-  const handleDeleteFolder = () => {
-    if (contextMenu) {
-      const confirmDelete = window.confirm(`Are you sure you want to delete "${contextMenu.folder.dirName}"?`);
-      if (confirmDelete) {
-        console.log(`Delete folder: ${contextMenu.folder.dirName}`);
-      }
-      setClickPosition(null);
-    }
-  };
-
-  const closeContextMenu = () => {
-    setClickPosition(null);
-  };
-  const handleDoubleClick=(data:any)=>{
-    console.log(data)
-     setRowData(data)
-  }
-
-  const renderFolder = (folder: any, level: number = 0) => {
-    if (!folder.isFolder) return null; 
-
-    return (
-      <div key={folder._id} className="pl-3">
-        <div
-          className="flex items-center gap-2 py-1 cursor-pointer text-gray-800 hover:bg-gray-100 rounded-md"
-          style={{ paddingLeft: `${level * 20}px` }}
-          onContextMenu={(e) => handleRightClick(e, folder)}
-          onClick={(e) => handleExpandlable(e, folder.dirName)}
-        >
-          {isExpandable[folder.dirName] ? (
-            <FaFolderOpen className="text-yellow-500" />
-          ) : (
-            <FaFolder className="text-yellow-500" />
-          )}
-          <span onDoubleClick={()=>handleDoubleClick(folder.children)}>{folder.dirName}</span>
-        </div>
-        {folder.children && isExpandable[folder.dirName] && (
-          <div>
-            {folder.children.map((child: any) => renderFolder(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  if (!data.children) return null;
 
   return (
-    
-    <div className="relative" onClick={closeContextMenu}>
-      {data.map((folder) => renderFolder(folder))}
+    <div className="">
+      <div
+        className="flex items-center gap-2 pl-1 py-0.5 cursor-pointer text-gray-800 hover:bg-gray-100 rounded-md"
+        style={{ marginLeft: `${level * 16}px` }}
+        onClick={(e) => handleExpandlable(e, data.dirName)}
+        onContextMenu={(e) => handleRightClick(e, data)}
+      >
+        {isExpandable[data.dirName] ? (
+          <FaFolderOpen className="text-yellow-500 text-xl ml-2" />
+        ) : (
+          <FaFolder className="text-yellow-500 text-xl ml-2" />
+        )}
+        <span className="text-xl ml-1">{data.dirName}</span>
+      </div>
 
-      {clickPosition && (<AddDeletePopup handleAddFolder={handleAddFolder} handleDeleteFolder={handleDeleteFolder} clickPosition={clickPosition}/>  )}
+      {isExpandable[data.dirName] &&
+        data.children?.map((child) => (
+          <MemoizedFolderMenu key={child._id} data={child} level={level + 1} />
+        ))}
     </div>
   );
 };
 
-export default FolderMenu;
+// ✅ Memoize with custom comparison
+const MemoizedFolderMenu = React.memo(FolderMenuComponent, (prev, next) => {
+  return prev.data._id === next.data._id &&
+         prev.data.children === next.data.children &&
+         prev.level === next.level;
+});
+
+export default MemoizedFolderMenu;

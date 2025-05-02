@@ -1,36 +1,53 @@
-// import React from 'react'
-import React, { useState, useRef, useEffect } from "react";
-import { FaFolder, FaFileAlt, FaTrash, FaFolderMinus } from "react-icons/fa";
+import React from "react";
+import { FaFolder, FaFileAlt } from "react-icons/fa";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import AddDeletePopup from "../AddDeletePopup/AddDeletePopup";
+import { useDispatch } from "react-redux";
+import { addClickPosition } from "../../store/Slice/menuDataSlice";
 
-interface rowProp {
-  item:any
-  clickPosition:any;
-  setClickPosition:React.Dispatch<React.SetStateAction<any>>;
-  handleAddFolder:any,
-  handleDeleteFolder:any;
-  handleRightClick:any
+interface RowProps {
+  item: {
+    _id: string;
+    isFolder: boolean;
+    dirName?: string;
+    fileName?: string;
+  };
 }
 
-const RowList:React.FC<rowProp> = ({item,clickPosition, setClickPosition,handleAddFolder,handleDeleteFolder,handleRightClick}) => {
-    const [isFolder,setIsFolder]=useState<any>(true)
-    
+const RowList: React.FC<RowProps> = ({ item }) => {
+  const dispatch = useDispatch();
+ console.log("object")
+  const handleRightClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    dispatch(
+      addClickPosition({
+        selectedId: item._id,
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      })
+    );
+  };
+
   return (
-    <div>
-      <div className="flex justify-between items-center px-4 py-0.5 hover:bg-gray-100 rounded relative group bg-gray-50">
-            <div className="flex items-center gap-2 text-gray-700"
-              onClick={(e) => handleRightClick(e, item)}>
-              {isFolder ? <FaFolder className="text-yellow-500 text-xl" /> : <FaFileAlt className="text-blue-500 text-xl" />}
-              <span className="text-xl">{item.dirName}</span>
-            </div>
-            <div  className="relative">
-                <button><BsThreeDotsVertical /></button>
-                {clickPosition &&(<AddDeletePopup handleAddFolder={handleAddFolder} handleDeleteFolder={handleDeleteFolder} clickPosition={clickPosition}/>)}
-            </div>
+    <div className="group flex justify-between items-center  px-4 py-2 hover:bg-gray-100 relative mb-1 bg-white rounded w-[700px]">
+      <div className="flex items-center gap-2 text-gray-700">
+        {item.isFolder ? (
+          <FaFolder className="text-yellow-500 text-xl" />
+        ) : (
+          <FaFileAlt className="text-blue-500 text-xl" />
+        )}
+        <span className="text-xl">
+          {item.isFolder ? item.dirName : item.fileName}
+        </span>
+      </div>
+      <div className="relative">
+        <button className="group-hover:bg-white p-2" onClick={handleRightClick}>
+          <BsThreeDotsVertical />
+        </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default RowList
+
+export default React.memo(RowList, (prev, next) => prev.item._id === next.item._id);

@@ -1,107 +1,71 @@
-
 import { useEffect, useState } from "react";
-import FolderMenu from "../../components/FolderMenu/FolderMenu";
+// import FolderMenu from "../../components/FolderMenu/FolderMenu";
 import Header from "../../components/Header/Header";
-import ListRow from "../../components/ListRow.tsx/ListRow";
 import useFetchDirectories from "../../hooks/useFetchDirectories";
 import RowList from "../../components/RowList/RowList";
-
+import LoadingSpinner from "../../components/LoadingSpinner/LoadingSpinner";
+import ErrorMessage from "../../components/ErrorMessage/ErrorMessage";
+import FolderMenu from "../../components/FolderMenu/FolderMenu";
+import { useDispatch, useSelector } from "react-redux";
+import AddDeletePopup from "../../components/AddDeletePopup/AddDeletePopup";
+import { addClickPosition } from "../../store/Slice/menuDataSlice";
 
 function Home() {
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(!false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [rowData,setRowData]=useState<any>({})
-  const [clickPostion,setClickPosition] = useState<{ x: number; y: number; folder: any } | null>(null)
-
-  const url = 'http://localhost:4000/api/v1/dir/show'
+  const [showListData, setShowListData] = useState<any>([]);
+  const dispatch = useDispatch();
+  const url = "http://localhost:4000/api/v1/dir/show";
   const { state } = useFetchDirectories(url);
-  const {data:treeData,loading,error} = state
+  const { data: treeData, error, loading } = state;
 
+  const menu = useSelector((state: any) => state.menu);
+  console.log("object", menu);
 
-  const handleDeleteFile = (fileName: string) => {
-    console.log("Delete file:", fileName);
-  };
-
-  const handleDeleteDir = (dirName: string) => {
-    console.log("Delete folder:", dirName);
-  };
-  const addNewFolder = ()=>{
-
-  }
-
-    const handleRightClick = (e: React.MouseEvent, folder: any) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setClickPosition({ x: e.pageX, y: e.pageY, folder });
-    };
-  
-    const handleAddFolder = () => {
-      if (clickPostion) {
-        const folderName = prompt(`Enter new folder name inside "${clickPostion.folder.dirName}"`);
-        if (folderName) {
-          console.log(`Create new subfolder: ${folderName}`);
-        }
-        setClickPosition(null);
-      }
-    };
-  
-    const handleDeleteFolder = () => {
-      if (clickPostion) {
-        const confirmDelete = window.confirm(`Are you sure you want to delete "${clickPostion.folder.dirName}"?`);
-        if (confirmDelete) {
-          console.log(`Delete folder: ${clickPostion.folder.dirName}`);
-        }
-        setClickPosition(null);
-      }
-    };
-  
-    const closeContextMenu = () => {
-      setClickPosition(null);
-    };
-    const handleDoubleClick=(data:any)=>{
-      console.log(data)
-       setRowData(data)
+  console.log(treeData, Array.isArray(treeData), error, loading);
+  useEffect(() => {
+    if (Array.isArray(treeData) && treeData.length > 0) {
+      setShowListData(treeData[0].children);
     }
+  }, [treeData]);
+  console.log(showListData);
 
+  const handleClosePopuop = () => {
+    dispatch(
+      addClickPosition({
+        selectedId: null,
+        top: 0,
+        left: 0,
+      })
+    );
+  };
+  if (menu.top > 0 && menu.left > 0) {
+    document.addEventListener("mousedown", handleClosePopuop);
+  }
 
   return (
     <div>
-      <Header
-        isLoggedIn={isUserLoggedIn}
-        onLogin={() => {}}
-        onUpload={() => {}}
-        onOpenBin={() => {}}
-        onCreateFolder={() => {}}
-        darkMode={darkMode}
-        toggleTheme={() => setDarkMode(!darkMode)}
-      />
-  
-      <div className="flex ">
+      <Header />
 
-      <div className="w-52 border-2 min-h-[600px]">
-        { treeData ? <FolderMenu data={treeData} setRowData={setRowData} clickPosition={clickPostion} setClickPosition={setClickPosition}/> : ""}
+      <div className="flex bg-gray-200">
+        <div className="w-52  min-h-[600px] bg-white m-2 p-2">
+          {loading && <LoadingSpinner />}
+          {error && <ErrorMessage message={"error"} />}
+          {Array.isArray(treeData) &&
+            treeData.length > 0 &&
+            treeData.map((item) => <FolderMenu key={item._id} data={item} />)}
+        </div>
+
+        <div className=" m-2">
+          <div className="space-y-1 bg-gray-100">
+            {showListData?.length > 0 &&
+              showListData?.map((item: any, idx: number) => (
+                <RowList key={idx} item={item} />
+              ))}
+          </div>
+        </div>
       </div>
-
-
-       <div className="p-2 w-full">
-      <div className="space-y-1">
-        {rowData.length>0 && rowData?.map((item:any, idx:number) => (
-          <RowList 
-            key={idx}
-            item={item}
-            clickPosition={clickPostion} 
-            setClickPosition={setClickPosition}
-            handleAddFolder={handleAddFolder}
-            handleDeleteFolder={handleDeleteFolder}
-            handleRightClick={handleRightClick}
-            />
-        ))}
-      </div>
-    </div>
-
-
-      </div>
-      {/* <Register></Register> */}
+      {menu.top > 0 && menu.left > 0 && (
+        <AddDeletePopup top={menu.top} left={menu.left} />
+      )}
     </div>
   );
 }
