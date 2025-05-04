@@ -1,12 +1,16 @@
 import { Files, IFiles } from "../../models/files.model.js";
 import { Request, Response } from "express";
-import fs from "node:fs";
+// import fs from 'node:fs/promises';
+import {createReadStream,createWriteStream, statSync} from 'node:fs';
 import path from "node:path";
 import dotenv from "dotenv";
 import { randomUUID } from "node:crypto";
 import client from "../../db/redis.db.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
-import { createFileResponse } from "./FileApiResponse.ts";
+import { createFileResponse } from "./FileApiResponse.js";
+import mongoose from "mongoose";
+import { resetUploadWatchdog } from "../../utils/WatchDogRedis.js";
+import fs,{ stat,writeFile } from "node:fs/promises";
 
 dotenv.config({
   path: "../../.env",
@@ -19,15 +23,25 @@ const key = process.env.FileUploadkey;
 
 const createFile = async (req: AuthRequest, res: Response) => {
   const { parentid: parentId } = req.headers; //params
-  if (!parentId) {
-    res
-      .status(401)
-      .json(new ApiResponse<null>(200, null, "parentId is not found"));
+  let parentDirId = null;
+
+  if (parentId === null || parentId === 'null') {
+    parentDirId = null;
+  } else if (
+    (typeof parentId === 'string' || typeof parentId === 'object') &&
+    mongoose.Types.ObjectId.isValid(parentId.toString())
+  ) {
+    parentDirId = parentId.toString();
+  } else {
+    return res.status(400).json({ message: "Invalid parent directory ID" });
   }
-  const parentDirId = parentId?.toString() || null;
+  
+  // const parentDirId = parentId?.toString() || null;
   let fileName = req.headers.filename?.toString() || "untitled";
   const extension = path.extname(fileName.toString());
+  console.log(extension,req.headers.orgfilesize)
   const orgFileSize: any = Number(req.headers.orgfilesize);
+ 
   const checkFile = await Files.findOne({
     fileName: fileName,
     extension: extension,
@@ -53,8 +67,15 @@ const createFile = async (req: AuthRequest, res: Response) => {
   if (!addFile._id) {
     res.status(405).json(new ApiResponse<null>(405, null, "file not creates"));
   }
-
   const dirPath = `./storage/${addFile._id.toString()}${extension}`;
+  const updateDir = await Files.updateOne(
+    { _id: addFile._id },
+    { $set: { dirPath:dirPath.toString() } }
+  );
+  if(!updateDir.acknowledged){
+      return res.json({message:"dirpath is not update"})
+  }
+  await client.set("fileId", addFile._id.toString());
   res.status(201).json(
     new ApiResponse<createFileResponse>(
       201,
@@ -71,30 +92,41 @@ const createFile = async (req: AuthRequest, res: Response) => {
 const addFileData = async (
   req: AuthRequest,
   res: Response
-): Promise<void> => {
+) => {
   const orgFileSize = Number(req.headers.orgfilesize);
+  const fileId = req.headers?.fileid?.toString()
+  if(!fileId){
+    return res.json({message:"fileId is not found",success:false})
+  }
   const dirPath = req.headers.dirpath?.toString();
   if (!dirPath) return void res.json({ message: "dir is not found" });
-  const writeStream = fs.createWriteStream(dirPath, { flags: "a" });
-  req.on("data", (chunk) => {
-    const canWrite = writeStream.write(chunk);
+  const writeStream = createWriteStream(dirPath, { flags: "a" });
+  req.on("data", async(chunk) => {
+    resetUploadWatchdog()
+    const canWrite =  writeStream.write(chunk);
     if (!canWrite) {
       req.pause();
       writeStream.once("drain", () => req.resume());
     }
   });
 
-  req.on("end", () => {
+  req.on("end", async () => {
     writeStream.end(); // Ensures stream is closed
-    writeStream.on("finish", () => {
-      fs.stat(dirPath, async (err, stats) => {
-        if (err) {
+    writeStream.on("finish", async() => {
+      // await fs.stat(dirPath, async (err, stats) => {
+      //   if (err) {
+      //     console.error("Error getting file stats:", err);
+      //       res
+      //       .status(500)
+      //       .json({ success: false, message: "Error getting file info" });
+      //   }
+        const stats = await stat(dirPath)
+        if(!stat){
           console.error("Error getting file stats:", err);
-            res
-            .status(500)
-            .json({ success: false, message: "Error getting file info" });
+                res
+                .status(500)
+                .json({ success: false, message: "Error getting file info" });
         }
-
         const fileSizeInBytes = stats.size;
         const fileSizeInMB = (fileSizeInBytes / (1024 * 1024)).toFixed(2);
         const percentage = (fileSizeInBytes / orgFileSize) * 100;
@@ -105,7 +137,6 @@ const addFileData = async (
         res.status(202).json({
           success: true,
           message: "File uploaded",
-          data: { set: "da" },
           fileSize: {
             fileSizeInBytes,
             fileSizeInMB,
@@ -113,7 +144,7 @@ const addFileData = async (
             value,
           },
         });
-      });
+      // });
     });
   });
 
@@ -137,14 +168,25 @@ const showFiles = async (req: Request, res: Response) => {
   const range = req.headers.range;
   console.log(range);
 };
-const deleteFiles = async (req: Request, res: Response) => {};
+const deleteFiles = async (req: Request, res: Response) => {
+  const {_id}=req.body
+  const file = await Files.findOne({_id:_id})
+  if(!file?._id){
+    return res.json({message:"file is not found",success:false})
+  }
+  const { dirPath } = file
+  if(!dirPath){
+    return res.json({message:"path is not found",success:false})
+  }
+  const items = await fs.readdir(dirPath);
+};
 const getFile = async (req: Request, res: Response) => {
   const { id } = req.params;
   console.log(id, "id");
   const folderPath = "./storage/govind";
   const fullPath = path.join(folderPath, id.toString());
   console.log(fullPath, "full fath");
-  const stat = fs.statSync(fullPath);
+  const stat = statSync(fullPath);
   const fileSize = stat.size;
   const range = req.headers.range;
   console.log("range", range);
@@ -162,7 +204,7 @@ const getFile = async (req: Request, res: Response) => {
     if (end - start + 1 > MAX_CHUNK_SIZE) {
       end = start + MAX_CHUNK_SIZE - 1;
     }
-    const file = fs.createReadStream(fullPath, { start, end });
+    const file = createReadStream(fullPath, { start, end });
     console.log("start", start);
     console.log("end", end);
     console.log("chunk", chunksize);
@@ -179,9 +221,15 @@ const getFile = async (req: Request, res: Response) => {
       "Content-Length": fileSize,
       "Content-Type": "video/mp4",
     });
-    fs.createReadStream(fullPath).pipe(res);
+    createReadStream(fullPath).pipe(res);
   }
 };
+
+const resumableFiles = async(req:Request,res:Response)=>{
+ const files = await Files.find({userId:'680b9c9e19f9dd89bf0c910a',uploaded:true})
+ console.log(files)
+ return res.json({message:"list of resume file ", success:true, data:files})
+}
 
 function Resume() {
   // if(resume && checkFile?.fileName){
@@ -201,4 +249,4 @@ function Resume() {
   // }
 }
 
-export { createFile, addFileData, showFiles, deleteFiles, getFile };
+export { createFile, addFileData, showFiles, deleteFiles, getFile, resumableFiles };
