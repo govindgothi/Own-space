@@ -9,8 +9,9 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import { createFileResponse } from "./FileApiResponse.js";
 import mongoose from "mongoose";
 import { resetUploadWatchdog } from "../../utils/WatchDogRedis.js";
-import fs, { rm, stat, writeFile } from "node:fs/promises";
+import fs, { rm, stat,copyFile as fsCopyFile } from "node:fs/promises";
 import { Directories } from "../../models/directories.model.js";
+// import { copyFile } from 'fs/promises';
 
 dotenv.config({
   path: "../../.env",
@@ -18,8 +19,6 @@ dotenv.config({
 interface AuthRequest extends Request {
   user?: any;
 }
-
-const key = process.env.FileUploadkey;
 
 
 //-----File Instance creation---------------------------------------------------------------
@@ -297,6 +296,9 @@ const getResumableFiles = async (req: Request, res: Response) => {
 const moveFile = async (req: Request, res: Response) => {
   try{
     const {currentDirId,moveDirId,fileId}= req.body
+    if(currentDirId === moveDirId){
+      return res.json({message :"you cannot move file in same dir"})
+    }
     const file = await Files.findById({_id:fileId})
     if(!(file?._id && file?.parentId)){
      return res.json({message:"id is not found",success:false})
@@ -323,10 +325,58 @@ const moveFile = async (req: Request, res: Response) => {
 };
 const copyFile =async (req: Request, res: Response) =>{
   try{
-    const {currentDirId,moveDirId,fileId}= req.body
-    
+    const {currentDirId,copyDirId,fileId}= req.body
+    if(currentDirId === copyDirId){
+      return res.json({message :"you cannot copy in same dir",success:false})
+    }
+    const file = await Files.findById({_id:fileId})
+    if(!(file?._id && file?.parentId)){
+     return res.json({message:"id is not found",success:false})
+    }
+    if(currentDirId !== file.parentId){
+      return res.json({message:"parentId is not matched"})
+    }
+    const moveDir = await Directories.findById({_id:copyDirId})
+    if(!moveDir?._id){
+       return res.json({message:"moved dir is not found"})
+    }
+    const addFile = await Files.create({
+    userId: "680b9c9e19f9dd89bf0c910a",
+    fileName:file.fileName,
+    extension:file.extension,
+    parentId:copyDirId,
+    orgFileSize:file.orgFileSize,
+    uploaded: file.uploaded,
+    uploadedByte: file.uploadedByte,
+    percentage: file.percentage,
+    })
+    if (!addFile._id) {
+      res.status(405).json({message:"file is not copy",success:false});
+    }
+    const dirPath = `./storage/${addFile._id.toString()}${file.extension}`;
+    const updateCopyFile = await Files.updateOne(
+      { _id: addFile._id },
+      { $set: { dirPath: dirPath.toString() } }
+    );
+    if (!updateCopyFile.acknowledged) {
+      return res.json({ message: "dirpath is not update" });
+    }
+    const source = file.dirPath.toString();
+    if(!source){
+      return res.json({message:"source is not exist ",success:false})
+    }
+    try {
+      const sourcePath = path.resolve('backend', 'storage', `${file._id}${file.extension}`);
+      const destinationPath = path.resolve('backend', 'storage', `${addFile._id}${addFile.extension}`);
+  
+      await fsCopyFile(sourcePath, destinationPath);
+      console.log('File copied successfully!');
+    } catch (err) {
+      console.error('Error copying file:', err);
+    }
+    return res.json({message:"file is copied",success:true})
   }catch(err){
-
+    return res.json({message:"Something is wrong while file is copying",success:true})
   }
 }
 
@@ -343,22 +393,3 @@ export {
 };
 
 
-
-
-function Resume() {
-  // if(resume && checkFile?.fileName){
-  //   let dirPath = `./storage/${checkFile?._id.toString()}${checkFile?.extension}`;
-  //   return res.status(201).json(new ApiResponse<>({
-  //     file:"already added",
-  //     message:'file instance is created',
-  //     success:true,
-  //     data:{
-  //       dirPath,
-  //       fileId:checkFile?._id.toString(),
-  //       orgFileSize:checkFile?.orgFileSize,
-  //       uploaded:checkFile?.uploaded,
-  //       uploadedByte:checkFile?.uploadedByte,
-  //       percentage:checkFile?.percentage
-  //   }})
-  // }
-}
