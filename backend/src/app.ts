@@ -6,7 +6,15 @@ dotenv.config({
     path: './.env'
 })
 
-
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception 🔥', err);
+    process.exit(1); // exit to avoid endless restart
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection 🔥', reason);
+    process.exit(1); // exit
+  });
  
 async function main() {
   await client.connect()

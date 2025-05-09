@@ -1,11 +1,5 @@
-import mongoose, { Schema,model } from "mongoose";
-
-interface IDirectory {
-    dirName:string,
-    parentDirId:Schema.Types.ObjectId,
-    userId:Schema.Types.ObjectId,
-    rootId:Schema.Types.ObjectId,
-}
+import { Schema,model } from "mongoose";
+import { IDirectory } from "../interface_type/directories.interface.js";
 
 
 const dirSchema = new Schema<IDirectory>({
@@ -31,5 +25,5 @@ const dirSchema = new Schema<IDirectory>({
 const Directories = model('Directories',dirSchema)
 
 export {
-    Directories,IDirectory
+    Directories
 }

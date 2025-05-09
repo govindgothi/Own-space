@@ -35,7 +35,7 @@ const registerUser = async(req:Request,res:Response, next:NextFunction): Promise
   }));
   
   const update  = await Directories.bulkWrite(bulkOps);
-  res.status(201).json(new ApiResponse(401,{update},'user created'));
+  res.status(201).json(new ApiResponse(401, {update},'user created'));
 }
 const loginUser = async(req:Request,res:Response)=>{
   

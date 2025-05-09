@@ -1,15 +1,6 @@
-import { ObjectId, Schema,model } from "mongoose";
+import { Schema,model } from "mongoose";
 
-interface IFiles {
-    userId:ObjectId
-    fileName:string,
-    extension:string,
-    parentId:ObjectId,
-    orgFileSize:number,
-    uploaded:boolean,
-    uploadedByte:number,
-    percentage:number
-}
+import { IFiles } from "../interface_type/files.interface.js";
 
 
 const filesSchema = new Schema<IFiles>({
@@ -38,11 +29,17 @@ const filesSchema = new Schema<IFiles>({
   },
   percentage:{
     type:Number
-   }
-
+   },
+  dirPath:{
+    type:String
+  },
+  reCycleBin:{
+    type:Boolean,
+    default:false
+  }
 })
 
 const Files = model('Files',filesSchema)
 export {
-    Files,IFiles
+    Files
 }

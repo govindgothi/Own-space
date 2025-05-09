@@ -3,12 +3,13 @@ import {
   createDir,
   deleteDir,
   showDir,
-} from "../controllers/DirectoriesApi/directories.controller.js";
+  // Dir
+} from "../controllers/directories.controller.js";
 
 const router = Router();
 
-router.route("/:parentId(*)").post(createDir);
-router.route("/delete").post(deleteDir);
+router.route("/createDir").post(createDir);
+router.route("/delete").delete(deleteDir);
 router.route("/show").get(showDir);
-
+// router.route("/get").post(Dir);
 export default router;
