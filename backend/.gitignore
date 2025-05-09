@@ -33,3 +33,5 @@ storage
 *.zip
 *.mp4
 /build/
+.prettierrc
+.prettierignore
